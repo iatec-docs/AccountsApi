@@ -1,0 +1,215 @@
+swagger: '2.0'
+info:
+  title: 'Accounts Api'
+  description: API for accessing the Accounts subsystem. Currently, only invitation procedures are implemented.
+  version: 1.0.0
+host: ws-accounts-ho.sdasystems.org
+basePath: /v1
+schemes:
+  - https
+security:
+  - client_credentials:
+    - 'invitation.api'
+tags:
+  - name: 'invitation'
+    description: 'Invitation-related operations'
+paths:
+  /users:
+    get:
+      tags:
+        - invitation
+      operationId: 'getUsers'
+      summary: 'Get many users'
+      description: 'Get many users by an optional filter'
+      produces:
+        - application/json
+      parameters:
+        - in: 'query'
+          name: 'filter'
+          description: 'A filter for matching the users'
+          type: 'string'
+          required: false
+        - in: 'query'
+          name: 'count'
+          description: 'The maximum number of records to bring.'
+          type: 'integer'
+          required: false
+        - in: 'query'
+          name: 'start'
+          description: 'The number of records to skip. Used for pagination.'
+          type: 'integer'
+          required: false
+      responses:
+        200:
+          description: 'Users found'
+          schema:
+            $ref: '#/definitions/paged_user'
+  /users/{userId}:
+    parameters:
+      - in: 'path'
+        name: 'userId'
+        description: 'The Id of the user'
+        type: 'string'
+        format: 'uuid'
+        required: true
+    get:
+      tags:
+        - invitation
+      operationId: 'getUserById'
+      summary: 'Get an user'
+      description: 'Get an user by Id'
+      produces:
+        - application/json
+      responses:
+        200:
+          description: 'User found'
+          schema:
+            $ref: '#/definitions/user'
+        404:
+          description: 'User not found'
+  
+  /applications/{appKey}/linked-users:
+    parameters:
+      - in: 'path'
+        name: 'appKey'
+        description: 'The AppKey of the application'
+        type: 'string'
+        format: 'uuid'
+        required: true
+    get:
+      tags:
+        - invitation
+      operationId: 'getLinkedUsers'
+      summary: 'Get many linked users'
+      description: 'Get many linke users by an optional filter'
+      produces:
+        - application/json
+      parameters:
+        - in: 'query'
+          name: 'filter'
+          description: 'A filter for matching the users'
+          type: 'string'
+          required: false
+        - in: 'query'
+          name: 'count'
+          description: 'The maximum number of records to bring.'
+          type: 'integer'
+          required: false
+        - in: 'query'
+          name: 'start'
+          description: 'The number of records to skip. Used for pagination.'
+          type: 'integer'
+          required: false
+      responses:
+        200:
+          description: 'Linked users found'
+          schema:
+            $ref: '#/definitions/paged_linked_user'
+    post:
+      tags:
+        - invitation
+      operationId: 'linkUser'
+      summary: 'Link user'
+      description: 'Link an user to an application. If the user does not exist, an invitation is sent to the user to fill in their remaining info.'
+      produces:
+        - application/json
+      parameters:
+        - in: 'body'
+          name: 'body'
+          description: 'Data of the user to link to the application'
+          schema:
+            $ref: '#/definitions/linked_user'
+      responses:
+        200:
+          description: 'Successfully invited'
+          schema:
+            $ref: '#/definitions/user'
+  /applications/{appKey}/linked-users/{userId}:
+    parameters:
+      - in: 'path'
+        name: 'appKey'
+        description: 'The AppKey of the application'
+        type: 'string'
+        format: 'uuid'
+        required: true
+      - in: 'path'
+        name: 'userId'
+        description: 'The Id of the user'
+        type: 'string'
+        required: true
+    delete:
+      tags:
+        - invitation
+      operationId: 'unlinkUser'
+      summary: 'Unlink user'
+      description: 'Unlink an user from an application.'
+      produces:
+        - application/json
+      responses:
+        204:
+          description: 'User unlinked'
+
+definitions:
+  linked_user:
+    type: object
+    properties:
+      id:
+        type: 'string'
+        format: 'uuid'
+      username:
+        type: 'string'
+      email:
+        type: 'string'
+        format: 'email'
+  user:
+    type: object
+    properties:
+      id:
+        type: 'string'
+        format: 'uuid'
+      username:
+        type: 'string'
+      email:
+        type: 'string'
+        format: 'email'
+      approved:
+        type: 'boolean'
+      registration_complete:
+        type: 'boolean'
+      created_at:
+        type: 'string'
+        format: 'datetime'
+  paged_user:
+    type: object
+    properties: 
+      count: 
+        type: 'integer'
+      start: 
+        type: 'integer'
+      total:
+        type: 'integer'
+      items:
+        type: 'array'
+        items:
+          $ref: '#/definitions/user'
+  paged_linked_user:
+    type: object
+    properties: 
+      count: 
+        type: 'integer'
+      start: 
+        type: 'integer'
+      total:
+        type: 'integer'
+      items:
+        type: 'array'
+        items:
+          $ref: '#/definitions/linked_user'
+securityDefinitions:
+  client_credentials:
+    type: 'oauth2'
+    description: 'Generates a token via the Client Credentials flow.'
+    tokenUrl: 'https://login-dev.sdasystems.org/connect/token'
+    flow: 'application'
+    scopes: 
+      invitation.api: 'Use this API'
